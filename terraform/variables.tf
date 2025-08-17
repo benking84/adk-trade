@@ -9,7 +9,3 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "tf_state_bucket" {
-  description = "The name of the GCS bucket to store the Terraform state file."
-  type        = string
-}
