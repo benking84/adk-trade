@@ -33,7 +33,6 @@ def create_portfolio_table(engine):
 def upsert_portfolio(engine, portfolio):
     """Inserts or updates the portfolio data."""
     with engine.connect() as connection:
-        trans = connection.begin()
         for position in portfolio:
             stmt = text("""
                 INSERT INTO portfolio (symbol, quantity, market_price, market_value, average_cost, unrealized_pnl, realized_pnl, account_name)
@@ -48,7 +47,6 @@ def upsert_portfolio(engine, portfolio):
                     account_name = VALUES(account_name)
             """)
             connection.execute(stmt, **position)
-        trans.commit()
 
 def create_insider_trades_table(engine):
     """Creates the insider_trades table if it doesn't exist."""
@@ -61,32 +59,29 @@ def create_insider_trades_table(engine):
                 relationship VARCHAR(255),
                 transaction_date DATE,
                 transaction_type VARCHAR(255),
-                transaction_value BIGINT,
+                value BIGINT,
                 shares BIGINT,
-                price_per_share FLOAT,
-                UNIQUE KEY `idx_unique_trade` (`ticker`, `insider_name`, `transaction_date`, `transaction_type`, `shares`)
+                price_per_share FLOAT
             )
         """))
 
 def upsert_insider_trades(engine, trades):
     """Inserts or updates the insider trades data."""
     with engine.connect() as connection:
-        trans = connection.begin()
         for trade in trades:
             stmt = text("""
-                INSERT INTO insider_trades (ticker, insider_name, relationship, transaction_date, transaction_type, transaction_value, shares, price_per_share)
-                VALUES (:ticker, :insider_name, :relationship, :transaction_date, :transaction_type, :transaction_value, :shares, :price_per_share)
+                INSERT INTO insider_trades (ticker, insider_name, relationship, transaction_date, transaction_type, value, shares, price_per_share)
+                VALUES (:ticker, :insider_name, :relationship, :transaction_date, :transaction_type, :value, :shares, :price_per_share)
                 ON DUPLICATE KEY UPDATE
                     insider_name = VALUES(insider_name),
                     relationship = VALUES(relationship),
                     transaction_date = VALUES(transaction_date),
                     transaction_type = VALUES(transaction_type),
-                    transaction_value = VALUES(transaction_value),
+                    value = VALUES(value),
                     shares = VALUES(shares),
                     price_per_share = VALUES(price_per_share)
             """)
             connection.execute(stmt, **trade)
-        trans.commit()
 
 if __name__ == "__main__":
     # For testing purposes
