@@ -4,31 +4,6 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/adk-trade']
 - name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'sh'
-  id: 'Grant IAM Permissions'
-  args:
-  - '-c'
-  - |
-    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
-    CLOUDBUILD_SA="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
-    COMPUTE_SA="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-
-    # Grant Cloud Build SA permissions to deploy infrastructure
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/serviceusage.serviceUsageAdmin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/run.admin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/cloudsql.admin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/secretmanager.admin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/compute.networkAdmin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/vpcaccess.admin
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$CLOUDBUILD_SA --role=roles/iam.serviceAccountUser
-
-    # Grant runtime SA (used by Cloud Run) permissions to access resources
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$COMPUTE_SA --role=roles/secretmanager.secretAccessor
-    gcloud projects add-iam-policy-binding $PROJECT_ID --member=$COMPUTE_SA --role=roles/cloudsql.client
-
-    echo "Waiting for IAM changes to propagate..."
-    sleep 30
-- name: 'gcr.io/cloud-builders/gcloud'
   id: 'Create Terraform State Bucket'
   entrypoint: 'sh'
   args:
