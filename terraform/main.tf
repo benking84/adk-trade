@@ -42,6 +42,7 @@ resource "google_project_iam_member" "cloudbuild_sa_permissions" {
     google_project_service.sqladmin,
     google_project_service.secretmanager,
     google_project_service.vpcaccess,
+    google_project_service.cloudresourcemanager,
   ]
 }
 
@@ -58,6 +59,7 @@ resource "google_project_iam_member" "cloudrun_runtime_sa_permissions" {
   depends_on = [
     google_project_service.secretmanager,
     google_project_service.sqladmin,
+    google_project_service.cloudresourcemanager,
   ]
 }
 
@@ -133,6 +135,10 @@ resource "google_secret_manager_secret" "db_password" {
       }
     }
   }
+  # Ensure IAM permissions are granted before creating the secret
+  depends_on = [
+    google_project_iam_member.cloudbuild_sa_permissions
+  ]
 }
 
 resource "google_secret_manager_secret_version" "db_password" {

@@ -9,13 +9,25 @@ steps:
   - '-c'
   - 'gcloud storage buckets create gs://aviato--trading-dev-tf-state --project $PROJECT_ID || true'
 - name: 'hashicorp/terraform:1.8.0'
+  id: 'Terraform Init'
   dir: 'terraform'
-  entrypoint: 'sh'
+  entrypoint: 'terraform'
   args:
-  - '-c'
-  - |- 
-    terraform init -backend-config="bucket=aviato--trading-dev-tf-state"
-    terraform apply -auto-approve -var="project_id=$PROJECT_ID"
+  - 'init'
+  - '-backend-config=bucket=aviato--trading-dev-tf-state'
+- name: 'hashicorp/terraform:1.8.0'
+  id: 'Terraform Validate'
+  dir: 'terraform'
+  entrypoint: 'terraform'
+  args: ['validate']
+- name: 'hashicorp/terraform:1.8.0'
+  id: 'Terraform Apply'
+  dir: 'terraform'
+  entrypoint: 'terraform'
+  args:
+  - 'apply'
+  - '-auto-approve'
+  - '-var=project_id=$PROJECT_ID'
 
 options:
   logging: CLOUD_LOGGING_ONLY
