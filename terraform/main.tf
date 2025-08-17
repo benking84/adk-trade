@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "= 5.30.0"
+      version = "~> 5.48.0"
     }
     random = {
       source = "hashicorp/random"
@@ -123,6 +123,11 @@ resource "google_sql_database_instance" "main" {
       query_insights_enabled = true
     }
   }
+}
+
+resource "google_sql_database" "database" {
+  name     = "adk-trade"
+  instance = google_sql_database_instance.main.name
 }
 
 resource "google_sql_user" "db_user" {
