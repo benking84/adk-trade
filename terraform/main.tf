@@ -1,4 +1,3 @@
-
 terraform {
   required_providers {
     google = {
@@ -40,7 +39,9 @@ resource "google_project_service" "containerregistry" {
   service = "containerregistry.googleapis.com"
 }
 
-
+resource "google_project_service" "vpcaccess" {
+  service = "vpcaccess.googleapis.com"
+}
 
 resource "random_password" "db_password" {
   length  = 16
@@ -74,7 +75,7 @@ resource "google_sql_database_instance" "main" {
     disk_size = 10
     disk_type = "PD_SSD"
     ip_configuration {
-      ipv4_enabled = true
+      ipv4_enabled = false
       private_network = "projects/${var.project_id}/global/networks/default"
     }
     backup_configuration {
@@ -93,6 +94,13 @@ resource "google_sql_user" "db_user" {
   name     = "adk-trade-user"
   instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
+}
+
+resource "google_vpc_access_connector" "connector" {
+  name          = "adk-trade-connector"
+  region        = var.region
+  ip_cidr_range = "10.8.0.0/28"
+  network       = "default"
 }
 
 resource "google_cloud_run_v2_service" "main" {
@@ -130,6 +138,9 @@ resource "google_cloud_run_v2_service" "main" {
     scaling {
       max_instance_count = 2
     }
+    vpc_access {
+      connector = google_vpc_access_connector.connector.id
+      egress    = "ALL_TRAFFIC"
+    }
   }
 }
-
