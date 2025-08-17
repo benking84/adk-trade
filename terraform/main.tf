@@ -70,8 +70,8 @@ resource "google_sql_database_instance" "main" {
   region           = var.region
 
   settings {
-    tier = "db-n1-standard-1"
-    availability_type = "REGIONAL"
+    tier = "db-g1-small"
+    availability_type = "ZONAL"
     disk_size = 10
     disk_type = "PD_SSD"
     ip_configuration {
@@ -101,6 +101,9 @@ resource "google_vpc_access_connector" "connector" {
   region        = var.region
   ip_cidr_range = "10.8.0.0/28"
   network       = "default"
+  depends_on = [
+    google_project_service.vpcaccess
+  ]
 }
 
 resource "google_cloud_run_v2_service" "main" {
