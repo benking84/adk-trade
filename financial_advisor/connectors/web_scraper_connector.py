@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 def get_insider_trades():
     """Scrapes the OpenInsider website for the latest insider trades."""
-    url = "http://openinsider.com/latest-insider-buys"
+    url = "http://openinsider.com/latest-insider-sales"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 
@@ -20,7 +20,7 @@ def get_insider_trades():
                     "relationship": cells[6].text.strip(),
                     "transaction_date": cells[2].text.strip(),
                     "transaction_type": cells[7].text.strip(),
-                    "transaction_value": cells[9].text.strip().replace(",", ""),
+                    "value": cells[9].text.strip().replace(",", ""),
                     "shares": cells[8].text.strip().replace(",", ""),
                     "price_per_share": cells[10].text.strip(),
                 }
