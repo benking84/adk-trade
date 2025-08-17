@@ -7,6 +7,7 @@ steps:
     pip install poetry
     pip install poetry-plugin-export
     python -m poetry --version
+    python -m poetry lock
     python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
