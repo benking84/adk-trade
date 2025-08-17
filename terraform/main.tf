@@ -162,7 +162,7 @@ resource "google_cloud_run_v2_service" "main" {
       max_instance_count = 1
     }
     containers {
-      image = "gcr.io/${var.project_id}/adk-trade-${each.key}"
+      image = "gcr.io/${var.project_id}/${replace(each.key, "_", "-")}-agent"
       env {
         name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
         value = google_sql_database_instance.main.connection_name
