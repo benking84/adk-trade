@@ -30,6 +30,9 @@ steps:
     gcloud projects add-iam-policy-binding $PROJECT_ID \
       --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
       --role="roles/cloudsql.client" && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/compute.networkAdmin" && \
     echo "Waiting for IAM changes to propagate..." && \
     sleep 30
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -48,4 +51,3 @@ steps:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-

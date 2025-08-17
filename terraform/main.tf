@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "= 5.30.0"
+      version = "~> 6.48.0"
     }
     random = {
       source = "hashicorp/random"
@@ -21,26 +21,52 @@ provider "google" {
 
 resource "google_project_service" "cloudbuild" {
   service = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_project_service" "cloudrun" {
   service = "run.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_project_service" "sqladmin" {
   service = "sqladmin.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_project_service" "secretmanager" {
   service = "secretmanager.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_project_service" "containerregistry" {
   service = "containerregistry.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_project_service" "vpcaccess" {
   service = "vpcaccess.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "servicenetworking" {
+  service            = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_compute_global_address" "private_ip_address" {
+  name          = "private-ip-for-gcp-services"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = "projects/${var.project_id}/global/networks/default"
+}
+
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = "projects/${var.project_id}/global/networks/default"
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+  depends_on              = [google_project_service.servicenetworking]
 }
 
 resource "random_password" "db_password" {
@@ -57,6 +83,9 @@ resource "google_secret_manager_secret" "db_password" {
       }
     }
   }
+  depends_on = [
+    google_project_service.secretmanager
+  ]
 }
 
 resource "google_secret_manager_secret_version" "db_password" {
@@ -69,6 +98,11 @@ resource "google_sql_database_instance" "main" {
   database_version = "MYSQL_8_0"
   region           = var.region
   deletion_protection = false
+
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.sqladmin
+  ]
 
   settings {
     tier = "db-g1-small"
@@ -91,6 +125,11 @@ resource "google_sql_database_instance" "main" {
   }
 }
 
+resource "google_sql_database" "database" {
+  name     = "adk-trade"
+  instance = google_sql_database_instance.main.name
+}
+
 resource "google_sql_user" "db_user" {
   name     = "adk-trade-user"
   instance = google_sql_database_instance.main.name
@@ -107,45 +146,46 @@ resource "google_vpc_access_connector" "connector" {
   ]
 }
 
-resource "google_cloud_run_v2_service" "main" {
+resource "google_cloud_run_v2_job" "main" {
   name     = "adk-trade"
   location = var.region
   deletion_protection = false
 
+  depends_on = [
+    google_sql_database.database,
+    google_project_service.cloudrun
+  ]
+
   template {
-    containers {
-      image = "gcr.io/${var.project_id}/adk-trade"
-      ports {
-        container_port = 8080
-      }
-      env {
-        name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
-        value = google_sql_database_instance.main.connection_name
-      }
-      env {
-        name  = "GCP_SQL_USER"
-        value = google_sql_user.db_user.name
-      }
-      env {
-        name  = "GCP_SQL_PASSWORD"
-        value_source {
-          secret_key_ref {
-            secret = google_secret_manager_secret.db_password.secret_id
-            version = "latest"
+    template {
+      containers {
+        image = "gcr.io/${var.project_id}/adk-trade"
+        env {
+          name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
+          value = google_sql_database_instance.main.connection_name
+        }
+        env {
+          name  = "GCP_SQL_USER"
+          value = google_sql_user.db_user.name
+        }
+        env {
+          name  = "GCP_SQL_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret = google_secret_manager_secret.db_password.secret_id
+              version = "latest"
+            }
           }
         }
+        env {
+          name = "GCP_SQL_DB_NAME"
+          value = google_sql_database.database.name
+        }
       }
-      env {
-        name = "GCP_SQL_DB_NAME"
-        value = "adk-trade"
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "ALL_TRAFFIC"
       }
-    }
-    scaling {
-      max_instance_count = 2
-    }
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "ALL_TRAFFIC"
     }
   }
 }

@@ -13,10 +13,13 @@ class TradeScannerAgent:
         insider_trades = web_scraper_connector.get_insider_trades()
         print(f"Found {len(insider_trades)} insider trades.")
 
-        # Filter for buy trades
-        insider_buys = [trade for trade in insider_trades if trade['transaction_type'] == 'Buy']
+        # Rename 'value' key to 'transaction_value' to avoid SQL keyword conflicts.
+        for trade in insider_trades:
+            if 'value' in trade:
+                trade['transaction_value'] = trade.pop('value')
 
-        print(f"Found {len(insider_buys)} insider buy trades.")
+        # The web scraper now only gets buys, but we can keep this filter for safety.
+        insider_buys = [trade for trade in insider_trades if trade.get('transaction_type') == 'Buy']
 
         print("Connecting to GCP SQL database...")
         engine = gcp_sql_connector.get_gcp_sql_engine()
