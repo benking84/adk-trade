@@ -59,25 +59,28 @@ def create_insider_trades_table(engine):
                 relationship VARCHAR(255),
                 transaction_date DATE,
                 transaction_type VARCHAR(255),
-                value BIGINT,
+                transaction_value BIGINT,
                 shares BIGINT,
-                price_per_share FLOAT
+                price_per_share FLOAT,
+                UNIQUE KEY `idx_unique_trade` (`ticker`, `insider_name`, `transaction_date`, `transaction_type`, `shares`)
             )
         """))
 
 def upsert_insider_trades(engine, trades):
     """Inserts or updates the insider trades data."""
     with engine.connect() as connection:
+        # Begin a transaction
+        trans = connection.begin()
         for trade in trades:
             stmt = text("""
-                INSERT INTO insider_trades (ticker, insider_name, relationship, transaction_date, transaction_type, value, shares, price_per_share)
-                VALUES (:ticker, :insider_name, :relationship, :transaction_date, :transaction_type, :value, :shares, :price_per_share)
+                INSERT INTO insider_trades (ticker, insider_name, relationship, transaction_date, transaction_type, transaction_value, shares, price_per_share)
+                VALUES (:ticker, :insider_name, :relationship, :transaction_date, :transaction_type, :transaction_value, :shares, :price_per_share)
                 ON DUPLICATE KEY UPDATE
                     insider_name = VALUES(insider_name),
                     relationship = VALUES(relationship),
                     transaction_date = VALUES(transaction_date),
                     transaction_type = VALUES(transaction_type),
-                    value = VALUES(value),
+                    transaction_value = VALUES(transaction_value),
                     shares = VALUES(shares),
                     price_per_share = VALUES(price_per_share)
             """)
