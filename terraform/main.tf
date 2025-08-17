@@ -145,6 +145,18 @@ resource "google_vpc_access_connector" "connector" {
   ]
 }
 
+resource "google_cloud_run_v2_service" "main" {
+  name     = "adk-trade"
+  location = var.region
+  deletion_protection = false
+
+  template {
+    containers {
+      image = "gcr.io/${var.project_id}/adk-trade"
+    }
+  }
+}
+
 resource "google_cloud_run_v2_job" "main" {
   name     = "adk-trade"
   location = var.region
