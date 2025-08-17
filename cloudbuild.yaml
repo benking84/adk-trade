@@ -7,14 +7,14 @@ steps:
   entrypoint: 'sh'
   args:
   - '-c'
-  - 'gcloud storage buckets create gs://$_TF_STATE_BUCKET --project $PROJECT_ID'
+  - 'gcloud storage buckets create gs://aviato--trading-dev-tf-state --project $PROJECT_ID'
 - name: 'hashicorp/terraform:1.8.0'
   dir: 'terraform'
   entrypoint: 'sh'
   args:
   - '-c'
   - |
-    terraform init -backend-config="bucket=$_TF_STATE_BUCKET"
+    terraform init -backend-config="bucket=aviato--trading-dev-tf-state"
     terraform apply -auto-approve -var="project_id=$PROJECT_ID"
 
 options:
