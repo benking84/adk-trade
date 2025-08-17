@@ -13,11 +13,6 @@ class TradeScannerAgent:
         insider_trades = web_scraper_connector.get_insider_trades()
         print(f"Found {len(insider_trades)} insider trades.")
 
-        # Rename 'value' key to 'transaction_value' to avoid SQL keyword conflicts.
-        for trade in insider_trades:
-            if 'value' in trade:
-                trade['transaction_value'] = trade.pop('value')
-
         # Filter for buy trades
         insider_buys = [trade for trade in insider_trades if trade['transaction_type'] == 'Buy']
 
