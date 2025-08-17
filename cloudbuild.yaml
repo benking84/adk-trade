@@ -1,7 +1,7 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
-  args: ['deployment/build-images.sh']
+  args: ['deployment/build-images.sh', '${PROJECT_ID}']
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'sh'
   args:
