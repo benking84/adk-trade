@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.48.0"
+      version = "= 5.30.0"
     }
     random = {
       source = "hashicorp/random"
@@ -21,57 +21,26 @@ provider "google" {
 
 resource "google_project_service" "cloudbuild" {
   service = "cloudbuild.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "cloudresourcemanager" {
-  service            = "cloudresourcemanager.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "cloudrun" {
   service = "run.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "sqladmin" {
   service = "sqladmin.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "secretmanager" {
   service = "secretmanager.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "containerregistry" {
   service = "containerregistry.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "vpcaccess" {
   service = "vpcaccess.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "servicenetworking" {
-  service            = "servicenetworking.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_compute_global_address" "private_ip_address" {
-  name          = "private-ip-for-gcp-services"
-  purpose       = "VPC_PEERING"
-  address_type  = "INTERNAL"
-  prefix_length = 16
-  network       = "projects/${var.project_id}/global/networks/default"
-}
-
-resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = "projects/${var.project_id}/global/networks/default"
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-  depends_on              = [google_project_service.servicenetworking]
 }
 
 resource "random_password" "db_password" {
@@ -100,10 +69,6 @@ resource "google_sql_database_instance" "main" {
   database_version = "MYSQL_8_0"
   region           = var.region
 
-  depends_on = [
-    google_service_networking_connection.private_vpc_connection
-  ]
-
   settings {
     tier = "db-g1-small"
     availability_type = "ZONAL"
@@ -123,11 +88,6 @@ resource "google_sql_database_instance" "main" {
       query_insights_enabled = true
     }
   }
-}
-
-resource "google_sql_database" "database" {
-  name     = "adk-trade"
-  instance = google_sql_database_instance.main.name
 }
 
 resource "google_sql_user" "db_user" {
