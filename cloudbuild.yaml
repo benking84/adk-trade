@@ -9,8 +9,8 @@ steps:
   args:
   - '-c'
   - |
-    terraform init
-    terraform apply -auto-approve -var="project_id=$PROJECT_ID" -var="tf_state_bucket=$_TF_STATE_BUCKET"
+    terraform init -backend-config="bucket=$_TF_STATE_BUCKET"
+    terraform apply -auto-approve -var="project_id=$PROJECT_ID"
 
 options:
   logging: CLOUD_LOGGING_ONLY
