@@ -1,4 +1,3 @@
-
 terraform {
   required_providers {
     google = {
@@ -30,6 +29,18 @@ resource "google_storage_bucket" "tf_state" {
 resource "random_password" "db_password" {
   length  = 16
   special = false
+}
+
+resource "google_secret_manager_secret" "db_password" {
+  secret_id = "db-password"
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret_version" "db_password" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = random_password.db_password.result
 }
 
 resource "google_sql_database_instance" "main" {
@@ -84,7 +95,12 @@ resource "google_cloud_run_v2_service" "main" {
       }
       env {
         name  = "GCP_SQL_PASSWORD"
-        value = google_sql_user.db_user.password
+        value_source {
+          secret_key_ref {
+            secret = google_secret_manager_secret.db_password.secret_id
+            version = "latest"
+          }
+        }
       }
       env {
         name = "GCP_SQL_DB_NAME"

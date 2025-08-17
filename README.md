@@ -723,61 +723,27 @@ is functional. `eval` is a demonstration of how to evaluate the agent, using the
 that the agent's responses match a pre-defined response reasonably well.
 
 
-## Deployment
+## Deployment to Google Cloud
 
-The Financial Advisor can be deployed to Vertex AI Agent Engine using the following
-commands:
+This section provides instructions on how to deploy the application to Google Cloud using Terraform and Cloud Build.
 
-```bash
-poetry install --with deployment
-python3 deployment/deploy.py --create
-```
+### Prerequisites
 
-When the deployment finishes, it will print a line like this:
+1.  **Google Cloud Project:** You need to have a Google Cloud project with billing enabled.
+2.  **Enable APIs:** Enable the following APIs in your Google Cloud project:
+    *   Cloud Build API
+    *   Cloud Run API
+    *   Cloud SQL Admin API
+    *   Secret Manager API
+    *   Google Container Registry API
+3.  **GCS Bucket for Terraform State:** Create a GCS bucket to store the Terraform state file. You will need to update the `backend` block in `terraform/main.tf` to use the name of your bucket.
+4.  **Cloud Build Trigger:** Create a Cloud Build trigger that will be triggered on pushes to the main branch of your repository. The trigger should use the `cloudbuild.yaml` file in the root of the repository.
 
-```
-Created remote agent: projects/<PROJECT_NUMBER>/locations/<PROJECT_LOCATION>/reasoningEngines/<AGENT_ENGINE_ID>
-```
+### Deployment Steps
 
-If you forgot the AGENT_ENGINE_ID, you can list existing agents using:
-
-```bash
-python3 deployment/deploy.py --list
-```
-
-The output will be like:
-
-```
-All remote agents:
-
-123456789 ("financial_advisor")
-- Create time: 2025-05-12 12:35:34.245431+00:00
-- Update time: 2025-05-12 12:36:01.421432+00:00
-```
-
-You may interact with the deployed agent using the `test_deployment.py` script
-```bash
-$ export USER_ID=<any string>
-$ python3 deployment/test_deployment.py --resource_id=${AGENT_ENGINE_ID} --user_id=${USER_ID}
-Found agent with resource ID: ...
-Created session for user ID: ...
-Type 'quit' to exit.
-Input: Hello, what can you do for me?
-Response: Hello! I can guide you through a structured process to receive financial advice. We'll work together with a team of expert subagents to:
-
-1.  **Analyze a market ticker**: We'll start by having you provide a market ticker symbol (e.g., AAPL, GOOGL). Our data analyst subagent will then provide a comprehensive analysis of it.
-2.  **Develop trading strategies**: Based on the market analysis and your risk attitude and investment period, our trading strategist subagent will propose potential trading strategies.
-3.  **Define an execution plan**: Next, our execution specialist subagent will create a detailed plan for implementing the chosen strategy, considering factors like order types and timing.
-4.  **Evaluate the overall risk**: Finally, our risk analyst subagent will assess the overall risk of the financial plan, ensuring it aligns with your goals and risk tolerance.
-
-Would you like to begin by providing a market ticker symbol for analysis?
-```
-
-To delete the deployed agent, you may run the following command:
-
-```bash
-python3 deployment/deploy.py --delete --resource_id=${AGENT_ENGINE_ID}
-```
+1.  **Push to the main branch:** Once you have completed the prerequisites, push your code to the main branch of your repository. This will trigger the Cloud Build pipeline, which will build the Docker image, push it to GCR, and then run Terraform to deploy the infrastructure.
+2.  **Monitor the deployment:** You can monitor the progress of the deployment in the Cloud Build section of the Google Cloud Console.
+3.  **Access the application:** Once the deployment is complete, you can access the application at the URL provided in the output of the Terraform apply step.
 
 ## Customization
 
