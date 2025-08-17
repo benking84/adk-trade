@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "= 6.48.0"
+      version = "~> 5.48.0"
     }
     random = {
       source = "hashicorp/random"
@@ -17,55 +17,6 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
-}
-
-data "google_project" "project" {}
-
-# Grant Cloud Build Service Account permissions to deploy infrastructure
-resource "google_project_iam_member" "cloudbuild_sa_permissions" {
-  for_each = toset([
-    "roles/serviceusage.serviceUsageAdmin",
-    "roles/run.admin",
-    "roles/cloudsql.admin",
-    "roles/secretmanager.admin",
-    "roles/compute.networkAdmin",
-    "roles/vpcaccess.admin",
-    "roles/iam.serviceAccountUser",
-  ])
-  project = var.project_id
-  role    = each.key
-  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-
-  depends_on = [
-    google_project_service.cloudbuild,
-    google_project_service.cloudrun,
-    google_project_service.sqladmin,
-    google_project_service.secretmanager,
-    google_project_service.vpcaccess,
-    google_project_service.cloudresourcemanager,
-  ]
-}
-
-# Grant Cloud Run's runtime Service Account permissions to access other services
-resource "google_project_iam_member" "cloudrun_runtime_sa_permissions" {
-  for_each = toset([
-    "roles/secretmanager.secretAccessor",
-    "roles/cloudsql.client",
-  ])
-  project = var.project_id
-  role    = each.key
-  # The default service account for Cloud Run is the Compute Engine default SA
-  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-  depends_on = [
-    google_project_service.secretmanager,
-    google_project_service.sqladmin,
-    google_project_service.cloudresourcemanager,
-  ]
-}
-
-resource "google_project_service" "cloudresourcemanager" {
-  service            = "cloudresourcemanager.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_project_service" "cloudbuild" {
@@ -115,10 +66,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = "projects/${var.project_id}/global/networks/default"
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-  depends_on = [
-    google_project_service.servicenetworking,
-    google_project_iam_member.cloudbuild_sa_permissions,
-  ]
+  depends_on              = [google_project_service.servicenetworking]
 }
 
 resource "random_password" "db_password" {
@@ -135,9 +83,8 @@ resource "google_secret_manager_secret" "db_password" {
       }
     }
   }
-  # Ensure IAM permissions are granted before creating the secret
   depends_on = [
-    google_project_iam_member.cloudbuild_sa_permissions
+    google_project_service.secretmanager
   ]
 }
 
@@ -152,7 +99,8 @@ resource "google_sql_database_instance" "main" {
   region           = var.region
 
   depends_on = [
-    google_service_networking_connection.private_vpc_connection
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.sqladmin
   ]
 
   settings {
@@ -202,7 +150,8 @@ resource "google_cloud_run_v2_service" "main" {
   location = var.region
 
   depends_on = [
-    google_sql_database.database
+    google_sql_database.database,
+    google_project_service.cloudrun
   ]
 
   template {
