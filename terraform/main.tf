@@ -50,7 +50,7 @@ resource "random_password" "db_password" {
 resource "google_secret_manager_secret" "db_password" {
   secret_id = "db-password"
   replication {
-    automatic = true
+    automatic {}
   }
 }
 
