@@ -4,6 +4,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/adk-trade']
 - name: 'hashicorp/terraform:1.8.0'
+  dir: 'terraform'
   entrypoint: 'sh'
   args:
   - '-c'
