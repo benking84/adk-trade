@@ -145,7 +145,7 @@ resource "google_vpc_access_connector" "connector" {
   ]
 }
 
-resource "google_cloud_run_v2_service" "main" {
+resource "google_cloud_run_v2_job" "main" {
   name     = "adk-trade"
   location = var.region
 
@@ -155,39 +155,35 @@ resource "google_cloud_run_v2_service" "main" {
   ]
 
   template {
-    containers {
-      image = "gcr.io/${var.project_id}/adk-trade"
-      ports {
-        container_port = 8080
-      }
-      env {
-        name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
-        value = google_sql_database_instance.main.connection_name
-      }
-      env {
-        name  = "GCP_SQL_USER"
-        value = google_sql_user.db_user.name
-      }
-      env {
-        name  = "GCP_SQL_PASSWORD"
-        value_source {
-          secret_key_ref {
-            secret = google_secret_manager_secret.db_password.secret_id
-            version = "latest"
+    template {
+      containers {
+        image = "gcr.io/${var.project_id}/adk-trade"
+        env {
+          name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
+          value = google_sql_database_instance.main.connection_name
+        }
+        env {
+          name  = "GCP_SQL_USER"
+          value = google_sql_user.db_user.name
+        }
+        env {
+          name  = "GCP_SQL_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret = google_secret_manager_secret.db_password.secret_id
+              version = "latest"
+            }
           }
         }
+        env {
+          name = "GCP_SQL_DB_NAME"
+          value = google_sql_database.database.name
+        }
       }
-      env {
-        name = "GCP_SQL_DB_NAME"
-        value = google_sql_database.database.name
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "ALL_TRAFFIC"
       }
-    }
-    scaling {
-      max_instance_count = 2
-    }
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "ALL_TRAFFIC"
     }
   }
 }

@@ -1,4 +1,3 @@
-
 from financial_advisor.sub_agents.trade_scanner_agent import TradeScannerAgent
 from dotenv import load_dotenv
 
