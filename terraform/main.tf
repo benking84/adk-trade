@@ -148,7 +148,7 @@ resource "google_vpc_access_connector" "connector" {
 
 resource "google_cloud_run_v2_service" "main" {
   for_each = toset(var.agents)
-  name     = "adk-trade-${each.key}"
+  name     = "adk-trade-${replace(each.key, "_", "-")}"
   location = var.region
   deletion_protection = false
 
