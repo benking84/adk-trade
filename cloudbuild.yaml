@@ -7,15 +7,45 @@ steps:
   entrypoint: 'sh'
   args:
   - '-c'
+  - |
+    gcloud services enable \
+      cloudresourcemanager.googleapis.com \
+      cloudbuild.googleapis.com \
+      run.googleapis.com \
+      sqladmin.googleapis.com \
+      secretmanager.googleapis.com \
+      containerregistry.googleapis.com
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |- 
+    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)") && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+      --role="roles/secretmanager.secretAccessor" && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/secretmanager.secretAccessor" && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/cloudsql.client" && \
+    echo "Waiting for IAM changes to propagate..." && \
+    sleep 30
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'sh'
+  args:
+  - '-c'
   - 'gcloud storage buckets create gs://aviato--trading-dev-tf-state --project $PROJECT_ID || true'
 - name: 'hashicorp/terraform:1.8.0'
   dir: 'terraform'
   entrypoint: 'sh'
   args:
   - '-c'
-  - |
+  - |- 
     terraform init -backend-config="bucket=aviato--trading-dev-tf-state"
     terraform apply -auto-approve -var="project_id=$PROJECT_ID"
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
