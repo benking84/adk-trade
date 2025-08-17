@@ -40,11 +40,7 @@ resource "google_project_service" "containerregistry" {
   service = "containerregistry.googleapis.com"
 }
 
-resource "google_storage_bucket" "tf_state" {
-  name          = var.tf_state_bucket
-  location      = "US"
-  uniform_bucket_level_access = true
-}
+
 
 resource "random_password" "db_password" {
   length  = 16
