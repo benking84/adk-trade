@@ -1,4 +1,3 @@
-
 variable "project_id" {
   description = "The ID of the Google Cloud project."
   type        = string
@@ -10,8 +9,7 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "db_password" {
-  description = "The password for the database."
+variable "tf_state_bucket" {
+  description = "The name of the GCS bucket to store the Terraform state file."
   type        = string
-  sensitive   = true
 }

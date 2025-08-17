@@ -730,18 +730,11 @@ This section provides instructions on how to deploy the application to Google Cl
 ### Prerequisites
 
 1.  **Google Cloud Project:** You need to have a Google Cloud project with billing enabled.
-2.  **Enable APIs:** Enable the following APIs in your Google Cloud project:
-    *   Cloud Build API
-    *   Cloud Run API
-    *   Cloud SQL Admin API
-    *   Secret Manager API
-    *   Google Container Registry API
-3.  **GCS Bucket for Terraform State:** Create a GCS bucket to store the Terraform state file. You will need to update the `backend` block in `terraform/main.tf` to use the name of your bucket.
-4.  **Cloud Build Trigger:** Create a Cloud Build trigger that will be triggered on pushes to the main branch of your repository. The trigger should use the `cloudbuild.yaml` file in the root of the repository.
+2.  **Cloud Build Trigger:** Create a Cloud Build trigger that will be triggered on pushes to the main branch of your repository. The trigger should use the `cloudbuild.yaml` file in the root of the repository. You will also need to set the `_TF_STATE_BUCKET` substitution variable in the trigger to the name of the GCS bucket you want to use for the Terraform state.
 
 ### Deployment Steps
 
-1.  **Push to the main branch:** Once you have completed the prerequisites, push your code to the main branch of your repository. This will trigger the Cloud Build pipeline, which will build the Docker image, push it to GCR, and then run Terraform to deploy the infrastructure.
+1.  **Push to the main branch:** Once you have completed the prerequisites, push your code to the main branch of your repository. This will trigger the Cloud Build pipeline, which will automatically enable the necessary APIs, create the GCS bucket for the Terraform state, build the Docker image, push it to GCR, and then run Terraform to deploy the infrastructure.
 2.  **Monitor the deployment:** You can monitor the progress of the deployment in the Cloud Build section of the Google Cloud Console.
 3.  **Access the application:** Once the deployment is complete, you can access the application at the URL provided in the output of the Terraform apply step.
 

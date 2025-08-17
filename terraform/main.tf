@@ -1,3 +1,4 @@
+
 terraform {
   required_providers {
     google = {
@@ -10,7 +11,7 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket  = "adk-trade-tf-state"
+    bucket  = var.tf_state_bucket
     prefix  = "terraform/state"
   }
 }
@@ -20,8 +21,28 @@ provider "google" {
   region  = var.region
 }
 
+resource "google_project_service" "cloudbuild" {
+  service = "cloudbuild.googleapis.com"
+}
+
+resource "google_project_service" "cloudrun" {
+  service = "run.googleapis.com"
+}
+
+resource "google_project_service" "sqladmin" {
+  service = "sqladmin.googleapis.com"
+}
+
+resource "google_project_service" "secretmanager" {
+  service = "secretmanager.googleapis.com"
+}
+
+resource "google_project_service" "containerregistry" {
+  service = "containerregistry.googleapis.com"
+}
+
 resource "google_storage_bucket" "tf_state" {
-  name          = "adk-trade-tf-state"
+  name          = var.tf_state_bucket
   location      = "US"
   uniform_bucket_level_access = true
 }

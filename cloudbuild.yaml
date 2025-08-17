@@ -1,22 +1,15 @@
-
 steps:
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: ['services', 'enable', 'secretmanager.googleapis.com']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/adk-trade', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/adk-trade']
-- name: 'gcr.io/cloud-builders/gcloud'
-  args:
-  - 'projects'
-  - 'add-iam-policy-binding'
-  - '$PROJECT_ID'
-  - '--member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com'
-  - '--role=roles/secretmanager.secretAccessor'
 - name: 'hashicorp/terraform:1.8.0'
   entrypoint: 'sh'
   args:
   - '-c'
   - |
     terraform init
-    terraform apply -auto-approve -var="project_id=$PROJECT_ID"
+    terraform apply -auto-approve -var="project_id=$PROJECT_ID" -var="tf_state_bucket=$TF_STATE_BUCKET"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
