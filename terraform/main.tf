@@ -19,6 +19,17 @@ provider "google" {
   region  = var.region
 }
 
+locals {
+  image_suffixes = {
+    "data_analyst"        = "data-analyst-agent"
+    "execution_analyst"   = "execution-analyst-agent"
+    "portfolio_manager"   = "portfolio-manager-agent"
+    "risk_analyst"        = "risk-analyst-agent"
+    "trade_scanner_agent" = "trade-scanner-agent"
+    "trading_analyst"     = "trading-analyst-agent"
+  }
+}
+
 resource "google_project_service" "cloudbuild" {
   service = "cloudbuild.googleapis.com"
   disable_on_destroy = false
@@ -162,7 +173,7 @@ resource "google_cloud_run_v2_service" "main" {
       max_instance_count = 1
     }
     containers {
-      image = "gcr.io/${var.project_id}/${replace(each.key, "_", "-")}-agent"
+      image = "gcr.io/${var.project_id}/${local.image_suffixes[each.key]}"
       env {
         name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
         value = google_sql_database_instance.main.connection_name
