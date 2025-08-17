@@ -68,6 +68,7 @@ resource "google_sql_database_instance" "main" {
   name             = "adk-trade-db"
   database_version = "MYSQL_8_0"
   region           = var.region
+  deletion_protection = false
 
   settings {
     tier = "db-g1-small"
@@ -109,6 +110,7 @@ resource "google_vpc_access_connector" "connector" {
 resource "google_cloud_run_v2_service" "main" {
   name     = "adk-trade"
   location = var.region
+  deletion_protection = false
 
   template {
     containers {
