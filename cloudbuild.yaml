@@ -5,7 +5,7 @@ steps:
   - '-c'
   - |
     pip install poetry
-    poetry export -f requirements.txt --output requirements.txt --without-hashes
+    python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['deployment/build-images.sh', '${PROJECT_ID}']
