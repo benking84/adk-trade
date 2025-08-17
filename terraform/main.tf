@@ -59,6 +59,21 @@ resource "google_project_service" "servicenetworking" {
   disable_on_destroy = false
 }
 
+resource "google_compute_global_address" "private_ip_address" {
+  name          = "private-ip-for-gcp-services"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = "projects/${var.project_id}/global/networks/default"
+}
+
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = "projects/${var.project_id}/global/networks/default"
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+  depends_on              = [google_project_service.servicenetworking]
+}
+
 resource "random_password" "db_password" {
   length  = 16
   special = false
@@ -86,7 +101,7 @@ resource "google_sql_database_instance" "main" {
   region           = var.region
 
   depends_on = [
-    google_project_service.servicenetworking
+    google_service_networking_connection.private_vpc_connection
   ]
 
   settings {
