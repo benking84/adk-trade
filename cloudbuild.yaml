@@ -7,7 +7,7 @@ steps:
   entrypoint: 'sh'
   args:
   - '-c'
-  - 'gcloud storage buckets create gs://$_TF_STATE_BUCKET --project $PROJECT_ID || true'
+  - 'gcloud storage buckets create gs://$_TF_STATE_BUCKET --project $PROJECT_ID'
 - name: 'hashicorp/terraform:1.8.0'
   dir: 'terraform'
   entrypoint: 'sh'
