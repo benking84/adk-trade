@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 
 def get_insider_trades():
     """Scrapes the OpenInsider website for the latest insider trades."""
-    url = "http://openinsider.com/latest-insider-sales"
+    url = "http://openinsider.com/latest-insider-buys"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 

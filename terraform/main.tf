@@ -19,6 +19,53 @@ provider "google" {
   region  = var.region
 }
 
+data "google_project" "project" {}
+
+# Grant Cloud Build Service Account permissions to deploy infrastructure
+resource "google_project_iam_member" "cloudbuild_sa_permissions" {
+  for_each = toset([
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/run.admin",
+    "roles/cloudsql.admin",
+    "roles/secretmanager.admin",
+    "roles/compute.networkAdmin",
+    "roles/vpcaccess.admin",
+    "roles/iam.serviceAccountUser",
+  ])
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+
+  depends_on = [
+    google_project_service.cloudbuild,
+    google_project_service.cloudrun,
+    google_project_service.sqladmin,
+    google_project_service.secretmanager,
+    google_project_service.vpcaccess,
+  ]
+}
+
+# Grant Cloud Run's runtime Service Account permissions to access other services
+resource "google_project_iam_member" "cloudrun_runtime_sa_permissions" {
+  for_each = toset([
+    "roles/secretmanager.secretAccessor",
+    "roles/cloudsql.client",
+  ])
+  project = var.project_id
+  role    = each.key
+  # The default service account for Cloud Run is the Compute Engine default SA
+  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  depends_on = [
+    google_project_service.secretmanager,
+    google_project_service.sqladmin,
+  ]
+}
+
+resource "google_project_service" "cloudresourcemanager" {
+  service            = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "cloudbuild" {
   service = "cloudbuild.googleapis.com"
   disable_on_destroy = false
@@ -66,7 +113,10 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = "projects/${var.project_id}/global/networks/default"
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-  depends_on              = [google_project_service.servicenetworking]
+  depends_on = [
+    google_project_service.servicenetworking,
+    google_project_iam_member.cloudbuild_sa_permissions,
+  ]
 }
 
 resource "random_password" "db_password" {
