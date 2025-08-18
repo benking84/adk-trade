@@ -202,3 +202,14 @@ resource "google_cloud_run_v2_service" "main" {
     }
   }
 }
+
+resource "google_cloud_run_v2_service_iam_binding" "no_auth_access" {
+  for_each = toset(var.agents)
+  location = google_cloud_run_v2_service.main[each.key].location
+  name     = google_cloud_run_v2_service.main[each.key].name
+  role     = "roles/run.invoker"
+  members = [
+    "allUsers",
+  ]
+}
+}
