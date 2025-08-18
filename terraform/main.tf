@@ -140,7 +140,7 @@ resource "google_sql_database" "database" {
 }
 
 resource "google_sql_user" "db_user" {
-resource "google_sql__user" "db_user" {
+  name     = "db_user"
   instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
 }
@@ -199,3 +199,4 @@ resource "google_cloud_run_v2_service" "main" {
       egress    = "ALL_TRAFFIC"
     }
   }
+}

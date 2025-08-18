@@ -1,4 +1,17 @@
 steps:
+- name: 'python:3.12-slim'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    pip install poetry
+    pip install poetry-plugin-export
+    python -m poetry --version
+    python -m poetry lock
+    python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args: ['deployment/build-images.sh', '${PROJECT_ID}']
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'sh'
   args:
@@ -10,8 +23,7 @@ steps:
       run.googleapis.com \
       sqladmin.googleapis.com \
       secretmanager.googleapis.com \
-      containerregistry.googleapis.com \
-      aiplatform.googleapis.com
+      containerregistry.googleapis.com
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'sh'
   args:
@@ -22,31 +34,29 @@ steps:
       --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
       --role="roles/secretmanager.secretAccessor" && \
     gcloud projects add-iam-policy-binding $PROJECT_ID \
-      --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
-      --role="roles/aiplatform.admin" && \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/secretmanager.secretAccessor" && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/cloudsql.client" && \
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+      --role="roles/compute.networkAdmin" && \
     echo "Waiting for IAM changes to propagate..." && \
     sleep 30
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'sh'
   args:
   - '-c'
-  - 'gcloud storage buckets create gs://aviato--trading-dev-staging --project $PROJECT_ID --location us-central1 || true'
+  - 'gcloud storage buckets create gs://aviato--trading-dev-tf-state --project $PROJECT_ID || true'
 - name: 'hashicorp/terraform:1.8.0'
   dir: 'terraform'
   entrypoint: 'sh'
   args:
   - '-c'
   - |- 
-    terraform init -backend-config="bucket=aviato--trading-dev-staging"
+    terraform init -backend-config="bucket=aviato--trading-dev-tf-state"
     terraform apply -auto-approve -var="project_id=$PROJECT_ID"
-- name: 'python:3.12-slim'
-  entrypoint: 'bash'
-  args:
-  - -c
-  - |
-    pip install poetry
-    poetry install --no-root
-    poetry run python -m deployment.deploy --create --project_id=${PROJECT_ID} --location=${LOCATION} --bucket=aviato--trading-dev-staging
 
 options:
   logging: CLOUD_LOGGING_ONLY
