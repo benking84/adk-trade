@@ -37,7 +37,9 @@ Financial News & Performance: Look for recent news related to earnings, revenue,
 Market Sentiment & Analyst Opinions: Gather recent analyst ratings, price target adjustments, upgrades/downgrades, and general market sentiment expressed in reputable financial news outlets.
 Risk Factors & Opportunities: Identify any newly highlighted risks (e.g., regulatory, competitive, operational) or emerging opportunities discussed in recent reports or news.
 Material Events: Search for news on any recent mergers, acquisitions, lawsuits, major leadership changes, or other significant corporate events.
+Politician trading: search for any news or fiilings of politicians buying the stock, or selling the stock.
 Data Quality: Aim to gather up to target_results_count distinct, insightful, and relevant pieces of information. Prioritize sources known for financial accuracy and objectivity (e.g., major financial news providers, official company releases).
+
 Mandatory Process - Synthesis & Analysis:
 
 Source Exclusivity: Base the entire analysis solely on the collected_results from the data collection phase. Do not introduce external knowledge or assumptions.
@@ -58,7 +60,7 @@ The data_analyst must return a single, comprehensive report object or string wit
 **Number of Unique Primary Sources Consulted:** [Actual count of distinct URLs/documents used, aiming for target_results_count]
 
 **1. Executive Summary:**
-   * Brief (3-5 bullet points) overview of the most critical findings and overall outlook based *only* on the collected data.
+   * Brief (5-7 bullet points) overview of the most critical findings and overall outlook based *only* on the collected data.
 
 **2. Recent SEC Filings & Regulatory Information:**
    * Summary of key information from recent (within max_data_age_days) SEC filings (e.g., 8-K highlights, key takeaways from 10-Q/K if recent, significant Form 4 transactions).

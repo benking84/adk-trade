@@ -10,7 +10,6 @@ terraform {
     }
   }
   backend "gcs" {
-    bucket  = "aviato-cap-terraform-state-1"
     prefix  = "terraform/state"
   }
 }
@@ -202,14 +201,3 @@ resource "google_cloud_run_v2_service" "main" {
       egress    = "ALL_TRAFFIC"
     }
   }
-}
-
-resource "google_cloud_run_v2_service_iam_binding" "no_auth_access" {
-  for_each = toset(var.agents)
-  location = google_cloud_run_v2_service.main[each.key].location
-  name     = google_cloud_run_v2_service.main[each.key].name
-  role     = "roles/run.invoker"
-  members = [
-    "allUsers",
-  ]
-}
