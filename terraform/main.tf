@@ -142,7 +142,7 @@ resource "google_sql_database" "database" {
   instance = google_sql_database_instance.main.name
 }
 
-resource "google_sql__user" "db_user" {
+resource "google_sql_user" "db_user" {
   name     = "adk-trade-user"
   instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
