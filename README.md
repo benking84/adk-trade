@@ -29,11 +29,11 @@ This diagram shows the detailed architecture of the agents and tools used:
 *   **Containerization:** Docker
 *   **Cloud Provider:** Google Cloud Platform (GCP)
 *   **Infrastructure as Code:** Terraform
-*   **CI/CD:** Google Cloud Build
 *   **Services:**
-    *   Google Cloud Run (for hosting the application)
+    *   Vertex AI Agent Engine (for hosting the agent)
     *   Google Cloud SQL (for the database)
     *   Google Secret Manager (for managing secrets)
+*   **CI/CD:** Google Cloud Build
 
 ## Prerequisites
 
@@ -95,18 +95,29 @@ pytest
 
 ## Deployment to Google Cloud
 
-This project uses Google Cloud Build and Terraform for automated deployment.
+This project is deployed to Google Cloud using a CI/CD pipeline defined in `cloudbuild.yaml`. The pipeline automates the provisioning of infrastructure and the deployment of the financial advisor agent.
 
 ### How it Works
 
-The `cloudbuild.yaml` file defines a CI/CD pipeline that is triggered on pushes to the main branch. The pipeline performs the following steps:
+The pipeline is typically triggered on pushes to the main branch and performs the following steps:
 
-1.  **Enables Required APIs:** Ensures all necessary Google Cloud APIs are enabled for the project.
-2.  **Grants Permissions:** Grants the Cloud Build service account the necessary IAM roles.
-3.  **Creates GCS Bucket:** Creates a Google Cloud Storage bucket to store the Terraform state.
-4.  **Builds Docker Image:** Builds the application's Docker image.
-5.  **Pushes Image to GCR:** Pushes the Docker image to the Google Container Registry.
-6.  **Deploys Infrastructure:** Runs Terraform to provision the necessary infrastructure (Cloud Run, Cloud SQL, Secret Manager).
+1.  **Enable APIs:** Ensures all necessary Google Cloud APIs (Vertex AI, Cloud SQL, etc.) are enabled.
+2.  **Grant Permissions:** Assigns necessary IAM roles to the Cloud Build service account to manage infrastructure and deploy the agent.
+3.  **Create GCS Bucket:** Creates a Google Cloud Storage bucket to store the Terraform state and serve as a staging area for Agent Engine.
+4.  **Provision Infrastructure with Terraform:** Runs `terraform apply` to create:
+    *   A Google Cloud SQL instance with a public IP.
+    *   A database and user.
+    *   Secrets in Google Secret Manager for the database password and public IP address.
+5.  **Deploy to Agent Engine:** Runs a Python script (`deployment/deploy.py`) to package and deploy the agent code to Vertex AI Agent Engine. The agent code is written to securely fetch its database credentials from Secret Manager at runtime.
+
+### Manual Deployment & Testing
+
+You can also deploy and test the agent manually using the provided scripts. Ensure your local environment is authenticated with `gcloud auth application-default login` and your `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and a staging `GOOGLE_CLOUD_STORAGE_BUCKET` are set as environment variables.
+
+*   **Create/Update the Agent:** `poetry run python -m deployment.deploy --create`
+*   **List Agents:** `poetry run python -m deployment.deploy --list`
+*   **Delete an Agent:** `poetry run python -m deployment.deploy --delete --resource_id <AGENT_RESOURCE_ID>`
+*   **Test an Agent:** `poetry run python -m deployment.test_deployment --resource_id <AGENT_RESOURCE_ID> --user_id test-user`
 
 ### Triggering a Deployment
 

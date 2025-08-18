@@ -1,18 +1,28 @@
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
+from google.cloud import secretmanager
+
+def _get_secret(secret_id: str, version: str = "latest") -> str:
+    """Retrieves a secret from Google Secret Manager."""
+    project_id = os.environ["GOOGLE_CLOUD_PROJECT"]
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version}"
+    response = client.access_secret_version(name=name)
+    return response.payload.data.decode("UTF-8")
 
 def get_gcp_sql_engine():
     """Creates a SQLAlchemy engine for GCP SQL."""
-    db_user = os.environ["GCP_SQL_USER"]
-    db_pass = os.environ["GCP_SQL_PASSWORD"]
-    db_name = os.environ["GCP_SQL_DB_NAME"]
-    instance_connection_name = os.environ["GCP_SQL_INSTANCE_CONNECTION_NAME"]
+    # These values match the resources created in Terraform
+    db_user = "db_user"
+    db_name = "adk-trade"
+    db_pass = _get_secret("db-password")
+    db_host = _get_secret("db-host")
 
-    engine = create_engine(
-        f"mysql+mysqlconnector://{db_user}:{db_pass}@/{db_name}?unix_socket=/cloudsql/{instance_connection_name}"
-    )
-    return engine
+    # Connection string for a public IP connection
+    db_uri = f"mysql+mysqlconnector://{db_user}:{db_pass}@{db_host}/{db_name}"
+
+    return create_engine(db_uri)
 
 def create_portfolio_table(engine):
     """Creates the portfolio table if it doesn't exist."""

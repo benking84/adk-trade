@@ -55,31 +55,6 @@ resource "google_project_service" "containerregistry" {
   disable_on_destroy = false
 }
 
-resource "google_project_service" "vpcaccess" {
-  service = "vpcaccess.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "servicenetworking" {
-  service            = "servicenetworking.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_compute_global_address" "private_ip_address" {
-  name          = "private-ip-for-gcp-services"
-  purpose       = "VPC_PEERING"
-  address_type  = "INTERNAL"
-  prefix_length = 16
-  network       = "projects/${var.project_id}/global/networks/default"
-}
-
-resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = "projects/${var.project_id}/global/networks/default"
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-  depends_on              = [google_project_service.servicenetworking]
-}
-
 resource "random_password" "db_password" {
   length  = 16
   special = false
@@ -104,16 +79,31 @@ resource "google_secret_manager_secret_version" "db_password" {
   secret_data = random_password.db_password.result
 }
 
+resource "google_secret_manager_secret" "db_host" {
+  secret_id = "db-host"
+  replication {
+    user_managed {
+      replicas {
+        location = "us-central1"
+      }
+    }
+  }
+  depends_on = [
+    google_project_service.secretmanager
+  ]
+}
+
+resource "google_secret_manager_secret_version" "db_host" {
+  secret      = google_secret_manager_secret.db_host.id
+  secret_data = google_sql_database_instance.main.public_ip_address
+  depends_on = [google_sql_database_instance.main]
+}
+
 resource "google_sql_database_instance" "main" {
   name             = "adk-trade-db"
   database_version = "MYSQL_8_0"
   region           = var.region
   deletion_protection = false
-
-  depends_on = [
-    google_service_networking_connection.private_vpc_connection,
-    google_project_service.sqladmin
-  ]
 
   settings {
     tier = "db-g1-small"
@@ -121,8 +111,13 @@ resource "google_sql_database_instance" "main" {
     disk_size = 10
     disk_type = "PD_SSD"
     ip_configuration {
-      ipv4_enabled = false
-      private_network = "projects/${var.project_id}/global/networks/default"
+      ipv4_enabled    = true
+      # WARNING: This allows access from any IP address.
+      # For a production environment, you should restrict this to known IP ranges.
+      authorized_networks {
+        name  = "allow-all"
+        value = "0.0.0.0/0"
+      }
     }
     backup_configuration {
       enabled = true
@@ -134,6 +129,9 @@ resource "google_sql_database_instance" "main" {
       query_insights_enabled = true
     }
   }
+  depends_on = [
+    google_project_service.sqladmin
+  ]
 }
 
 resource "google_sql_database" "database" {
@@ -142,7 +140,7 @@ resource "google_sql_database" "database" {
 }
 
 resource "google_sql_user" "db_user" {
-  name     = "db_user"
+resource "google_sql__user" "db_user" {
   instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
 }
@@ -201,4 +199,3 @@ resource "google_cloud_run_v2_service" "main" {
       egress    = "ALL_TRAFFIC"
     }
   }
-}
