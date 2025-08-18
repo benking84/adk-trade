@@ -19,24 +19,8 @@ provider "google" {
   region  = var.region
 }
 
-locals {
-  image_suffixes = {
-    "data_analyst"        = "data-analyst-agent"
-    "execution_analyst"   = "execution-analyst-agent"
-    "portfolio_manager"   = "portfolio-manager-agent"
-    "risk_analyst"        = "risk-analyst-agent"
-    "trade_scanner_agent" = "trade-scanner-agent"
-    "trading_analyst"     = "trading-analyst-agent"
-  }
-}
-
 resource "google_project_service" "cloudbuild" {
   service = "cloudbuild.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "cloudrun" {
-  service = "run.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -47,11 +31,6 @@ resource "google_project_service" "sqladmin" {
 
 resource "google_project_service" "secretmanager" {
   service = "secretmanager.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "containerregistry" {
-  service = "containerregistry.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -148,56 +127,3 @@ resource "google_sql_user" "db_user" {
 }
 
 resource "google_vpc_access_connector" "connector" {
-  name          = "adk-trade-connector"
-  region        = var.region
-  ip_cidr_range = "10.8.0.0/28"
-  network       = "default"
-  depends_on = [
-    google_project_service.vpcaccess
-  ]
-}
-
-resource "google_cloud_run_v2_service" "main" {
-  for_each = toset(var.agents)
-  name     = "adk-trade-${replace(each.key, "_", "-")}"
-  location = var.region
-  deletion_protection = false
-
-  depends_on = [
-    google_sql_database.database,
-    google_project_service.cloudrun
-  ]
-
-  template {
-    scaling {
-      max_instance_count = 1
-    }
-    containers {
-      image = "gcr.io/${var.project_id}/${local.image_suffixes[each.key]}"
-      env {
-        name  = "GCP_SQL_INSTANCE_CONNECTION_NAME"
-        value = google_sql_database_instance.main.connection_name
-      }
-      env {
-        name  = "GCP_SQL_USER"
-        value = google_sql_user.db_user.name
-      }
-      env {
-        name  = "GCP_SQL_PASSWORD"
-        value_source {
-          secret_key_ref {
-            secret = google_secret_manager_secret.db_password.secret_id
-            version = "latest"
-          }
-        }
-      }
-      env {
-        name = "GCP_SQL_DB_NAME"
-        value = google_sql_database.database.name
-      }
-    }
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "ALL_TRAFFIC"
-    }
-  }
