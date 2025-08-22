@@ -39,16 +39,13 @@ def create() -> None:
     """Creates an agent engine for Financial Advisors."""
     adk_app = AdkApp(agent=root_agent, enable_tracing=True)
 
+    with open("requirements.txt") as f:
+        requirements = f.read().splitlines()
+
     remote_agent = agent_engines.create(
         adk_app,
         display_name=root_agent.name,
-        requirements=[
-            "google-adk (>=0.0.2)",
-            "google-cloud-aiplatform[agent_engines] (>=1.91.0,!=1.92.0)",
-            "google-genai (>=1.5.0,<2.0.0)",
-            "pydantic (>=2.10.6,<3.0.0)",
-            "absl-py (>=2.2.1,<3.0.0)",
-        ],
+        requirements=requirements,
         #        extra_packages=[""],
     )
     print(f"Created remote agent: {remote_agent.resource_name}")

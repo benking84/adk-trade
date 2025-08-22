@@ -39,6 +39,16 @@ steps:
   - |- 
     terraform init -backend-config="bucket=aviato--trading-dev-staging"
     terraform apply -auto-approve -var="project_id=$PROJECT_ID"
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'Run Tests'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    apt-get update && apt-get install -y python3.12 python3-pip
+    pip3 install poetry
+    poetry install --with dev
+    poetry run pytest
 - name: 'python:3.12-slim'
   entrypoint: 'bash'
   args:
@@ -46,6 +56,7 @@ steps:
   - |
     pip install poetry
     poetry install --no-root
+    poetry export -f requirements.txt --output requirements.txt --without-hashes
     poetry run python -m deployment.deploy --create --project_id=${PROJECT_ID} --location=us-central1 --bucket=aviato--trading-dev-staging
 
 options:
