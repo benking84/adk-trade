@@ -45,9 +45,14 @@ steps:
   args:
   - -c
   - |
-    apt-get update && apt-get install -y python3.12 python3-pip
+    set -e
+    apt-get update && apt-get install -y software-properties-common
+    add-apt-repository -y ppa:deadsnakes/ppa
+    apt-get update && apt-get install -y python3.12 python3.12-venv python3-pip
     pip3 install poetry
     poetry install --with dev
+    export GOOGLE_GENAI_USE_VERTEXAI=1
+    export GOOGLE_CLOUD_LOCATION=us-central1
     poetry run pytest
 - name: 'python:3.12-slim'
   entrypoint: 'bash'
