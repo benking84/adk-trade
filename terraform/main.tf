@@ -50,6 +50,11 @@ resource "google_project_service" "secretmanager" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "servicenetworking" {
+  service = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "vpcaccess" {
   service            = "vpcaccess.googleapis.com"
   disable_on_destroy = false
@@ -100,8 +105,31 @@ resource "google_secret_manager_secret" "db_host" {
 
 resource "google_secret_manager_secret_version" "db_host" {
   secret      = google_secret_manager_secret.db_host.id
-  secret_data = google_sql_database_instance.main.public_ip_address
+  secret_data = google_sql_database_instance.main.private_ip_address
   depends_on = [google_sql_database_instance.main]
+}
+
+resource "google_compute_network" "vpc_network" {
+  name                    = "adk-trade-vpc"
+  auto_create_subnetworks = true
+}
+
+resource "google_compute_global_address" "private_ip_address" {
+  provider = google
+  name          = "adk-trade-private-ip-alloc"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.vpc_network.id
+}
+
+resource "google_service_networking_connection" "private_vpc_connection" {
+  provider = google
+  network                 = google_compute_network.vpc_network.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+
+  depends_on = [google_project_service.servicenetworking]
 }
 
 resource "google_sql_database_instance" "main" {
@@ -116,13 +144,8 @@ resource "google_sql_database_instance" "main" {
     disk_size = 10
     disk_type = "PD_SSD"
     ip_configuration {
-      ipv4_enabled    = true
-      # WARNING: This allows access from any IP address.
-      # For a production environment, you should restrict this to known IP ranges.
-      authorized_networks {
-        name  = "allow-all"
-        value = "0.0.0.0/0"
-      }
+      ipv4_enabled    = false
+      private_network = google_compute_network.vpc_network.id
     }
     backup_configuration {
       enabled = true
@@ -135,7 +158,8 @@ resource "google_sql_database_instance" "main" {
     }
   }
   depends_on = [
-    google_project_service.sqladmin
+    google_project_service.sqladmin,
+    google_service_networking_connection.private_vpc_connection
   ]
 }
 
